@@ -1,54 +1,44 @@
-name: Tag and Build on Merge
-
+name: Tag on merge
 on:
+  workflow_dispatch:
   push:
-    branches: [ "master", "main" ]
-
+    branches:
+      - main
 jobs:
   tag:
     runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.version.outputs.version }}
-      existed: ${{ steps.check_tag.outputs.exists }}
     steps:
-      - name: Check out code
-        uses: actions/checkout@v3
-        with:
-          # We need to fetch all history and tags for the version check
-          fetch-depth: 0
-
-      - name: Get version
+      - uses: actions/checkout@v2
+      - name: Get version from __version__.py
         id: version
-        run: |
-          echo "version=v$(python -c "from __version__ import __version__; print(__version__)")" >> $GITHUB_OUTPUT
-      
-      - name: Check if tag already exists
-        id: check_tag
-        run: |
-          if git rev-parse ${{ steps.version.outputs.version }} >/dev/null 2>&1; then
-            echo "Tag ${{ steps.version.outputs.version }} already exists."
-            echo "exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "Tag ${{ steps.version.outputs.version }} does not exist."
-            echo "exists=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Configure Git
-        if: steps.check_tag.outputs.exists == 'false'
-        run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-
-      - name: Create and push tag
-        if: steps.check_tag.outputs.exists == 'false'
-        run: |
-          git tag ${{ steps.version.outputs.version }}
-          git push origin ${{ steps.version.outputs.version }}
+        run: echo "::set-output name=tag::$(python -c "import __version__; print(__version__.__version__)")"
+      - name: Create tag
+        uses: mathieudutour/github-tag-action@v6.2
+        with:
+          github_token: "${{ secrets.GITHUB_TOKEN }}"
+          custom_tag: "${{ steps.version.outputs.tag }}"
 
   build:
     needs: tag
-    if: needs.tag.outputs.existed == 'false'
-    uses: ./.github/workflows/build.yml
-    with:
-      tag: ${{ needs.tag.outputs.version }}
-    secrets: inherit
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+      - name: Build executable
+        run: pyinstaller --onefile sinkhole.py
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: sinkhole-${{ matrix.os }}
+          path: dist/sinkhole*
