@@ -1,8 +1,8 @@
-name: Tag and Build on Main Merge
+name: Tag and Build on Merge
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "master", "main" ]
 
 jobs:
   tag:
