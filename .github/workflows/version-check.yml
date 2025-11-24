@@ -19,20 +19,38 @@ jobs:
           ref: ${{ github.event.pull_request.base.sha }}
           path: base
 
-      - name: Debug file paths
-        run: |
-          ls -R
-          find . -name "__version__.py"
-
       - name: Get versions
         id: versions
         run: |
-          head_version=$(python -c "import runpy; v = runpy.run_path('head/__version__.py'); print(v['__version__'])")
-          base_version=$(python -c "import runpy; v = runpy.run_path('base/__version__.py'); print(v['__version__'])")
+          head_version=$(python -c "import runpy; v = runpy.run_path('${{ github.workspace }}/head/__version__.py'); print(v['__version__'])")
+          base_version=$(python -c "import runpy; v = runpy.run_path('${{ github.workspace }}/base/__version__.py'); print(v['__version__'])")
           echo "head_version=$head_version" >> $GITHUB_OUTPUT
           echo "base_version=$base_version" >> $GITHUB_OUTPUT
 
       - name: Compare versions
         run: |
           pip install semver
-          python -c "import sys; import semver; sys.exit(0 if semver.compare('${{ steps.versions.outputs.head_version }}', '${{ steps.versions.outputs.base_version }}') > 0 else 1)"
+          python -c """
+          import sys
+          import semver
+
+          head_version = '${{ steps.versions.outputs.head_version }}'.strip()
+          base_version = '${{ steps.versions.outputs.base_version }}'.strip()
+
+          print(f"Comparing HEAD version ('{head_version}') with BASE version ('{base_version}')")
+
+          try:
+              head_v = semver.Version.parse(head_version)
+              base_v = semver.Version.parse(base_version)
+          except ValueError as e:
+              print(f"Error: Invalid version string. {e}", file=sys.stderr)
+              sys.exit(1)
+
+          if head_v > base_v:
+              print("Success: HEAD version is greater than BASE version.")
+              sys.exit(0)
+          else:
+              print("Error: HEAD version is not greater than BASE version.", file=sys.stderr)
+              print("Please increment the version in __version__.py.", file=sys.stderr)
+              sys.exit(1)
+          """
