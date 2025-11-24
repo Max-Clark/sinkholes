@@ -1,0 +1,11 @@
+name: Build on PR
+
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+
+jobs:
+  build:
+    uses: ./.github/workflows/reusable-build.yml
