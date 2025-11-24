@@ -22,8 +22,8 @@ jobs:
       - name: Get versions
         id: versions
         run: |
-          head_version=$(python -c "import runpy; v = runpy.run_path('${{ github.workspace }}/head/__version__.py'); print(v['__version__'])")
-          base_version=$(python -c "import runpy; v = runpy.run_path('${{ github.workspace }}/base/__version__.py'); print(v['__version__'])")
+          head_version=$(python -c "import runpy; v = runpy.run_path('head/__version__.py'); print(v['__version__'])")
+          base_version=$(python -c "import runpy; v = runpy.run_path('base/__version__.py'); print(v['__version__'])")
           echo "head_version=$head_version" >> $GITHUB_OUTPUT
           echo "base_version=$base_version" >> $GITHUB_OUTPUT
 
