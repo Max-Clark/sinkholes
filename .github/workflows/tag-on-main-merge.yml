@@ -1,0 +1,43 @@
+name: Tag on Main Merge
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+        with:
+          # We need to fetch all history and tags for the version check
+          fetch-depth: 0
+
+      - name: Get version
+        id: version
+        run: |
+          echo "version=v$(python -c "from __version__ import __version__; print(__version__)")" >> $GITHUB_OUTPUT
+      
+      - name: Check if tag already exists
+        id: check_tag
+        run: |
+          if git rev-parse ${{ steps.version.outputs.version }} >/dev/null 2>&1; then
+            echo "Tag ${{ steps.version.outputs.version }} already exists."
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "Tag ${{ steps.version.outputs.version }} does not exist."
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Configure Git
+        if: steps.check_tag.outputs.exists == 'false'
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Create and push tag
+        if: steps.check_tag.outputs.exists == 'false'
+        run: |
+          git tag ${{ steps.version.outputs.version }}
+          git push origin ${{ steps.version.outputs.version }}

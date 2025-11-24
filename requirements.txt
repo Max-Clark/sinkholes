@@ -7,3 +7,5 @@ rasterio
 richdem
 wget
 requests
+pyinstaller
+semver
