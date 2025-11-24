@@ -19,6 +19,11 @@ jobs:
           ref: ${{ github.event.pull_request.base.sha }}
           path: base
 
+      - name: Debug file paths
+        run: |
+          ls -R
+          find . -name "__version__.py"
+
       - name: Get versions
         id: versions
         run: |
