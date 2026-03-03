@@ -1,0 +1,10 @@
+name: sinkholes
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.7
+  - gdal
+  - pip
+  - pip:
+    - -r requirements.txt

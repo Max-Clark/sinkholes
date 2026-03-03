@@ -1,0 +1,35 @@
+name: Version Check
+
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out head branch
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: head
+      
+      - name: Check out base branch
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+
+      - name: Get versions
+        id: versions
+        run: |
+          head_version=$(python -c "import runpy; v = runpy.run_path('head/__version__.py'); print(v['__version__'])")
+          base_version=$(python -c "import runpy; v = runpy.run_path('base/__version__.py'); print(v['__version__'])")
+          echo "head_version=$head_version" >> $GITHUB_OUTPUT
+          echo "base_version=$base_version" >> $GITHUB_OUTPUT
+
+      - name: Compare versions
+        run: |
+          pip install semver
+          python -c "import sys; import semver; sys.exit(0 if semver.compare('${{ steps.versions.outputs.head_version }}', '${{ steps.versions.outputs.base_version }}') > 0 else 1)"
